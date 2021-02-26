@@ -22,8 +22,9 @@ class Figure(pygame.sprite.Sprite):
         super().__init__(sprites)
         self.x = x
         self.y = y
+        print(y)
         self.image = pygame.transform.scale(load_image('white_pawn.jpg'), (CELL_SIZE, CELL_SIZE))
-        self.rect = self.image.get_rect().move(y * CELL_SIZE + TOPLEFT, x * CELL_SIZE + TOPLEFT)
+        self.rect = self.image.get_rect().move(x * CELL_SIZE + TOPLEFT, -(y + 1) * CELL_SIZE + 1000 - TOPLEFT)
         self.clicked = False
         self.color = WHITE
 
@@ -51,6 +52,8 @@ class Board:
         self.board = [[0] * width for _ in range(height)]
         self.left = self.top = TOPLEFT
         self.cell_size = CELL_SIZE
+        self.figures = []
+        self.figures.append(Figure(0, 1, all_sprites))
 
     def set_view(self, left, top, cell_size):
         self.left = left
