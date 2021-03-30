@@ -11,6 +11,8 @@ BLACK = 1
 all_sprites = pygame.sprite.Group()
 global ai_moved
 global all_positions
+global moved_positions
+moved_positions = [(), ()]
 ai_moved = False
 
 
@@ -67,7 +69,49 @@ class Figure(pygame.sprite.Sprite):
 
     def move(self, x, y):
         global ai_moved
-        if self.can_move(x, y):
+        global moved_positions
+        moved = False
+        if self.can_move(x, y) == '0-0-0' and self.color == WHITE:
+            self.x = 2
+            for i in board.figures:
+                if i.__class__.__name__ == 'Rook' and i.get_coords() == (0, 0):
+                    i.x = 3
+                    i.rect = i.image.get_rect().move(i.x * CELL_SIZE + TOPLEFT, (7 - i.y) * CELL_SIZE + TOPLEFT)
+                    break
+            self.rect = self.image.get_rect().move(x * CELL_SIZE + TOPLEFT, (7 - y) * CELL_SIZE + TOPLEFT)
+            self.moved = True
+            moved = True
+        elif self.can_move(x, y) == '0-0' and self.color == WHITE:
+            self.x = 6
+            for i in board.figures:
+                if i.__class__.__name__ == 'Rook' and i.get_coords() == (7, 0):
+                    i.x = 5
+                    i.rect = i.image.get_rect().move(i.x * CELL_SIZE + TOPLEFT, (7 - i.y) * CELL_SIZE + TOPLEFT)
+                    break
+            self.rect = self.image.get_rect().move(x * CELL_SIZE + TOPLEFT, (7 - y) * CELL_SIZE + TOPLEFT)
+            moved = True
+            self.moved = True
+        elif self.can_move(x, y) == '0-0-0' and self.color == BLACK:
+            self.x = 2
+            for i in board.figures:
+                if i.__class__.__name__ == 'Rook' and i.get_coords() == (0, 7):
+                    i.x = 3
+                    i.rect = i.image.get_rect().move(i.x * CELL_SIZE + TOPLEFT, (7 - i.y) * CELL_SIZE + TOPLEFT)
+                    break
+            self.rect = self.image.get_rect().move(x * CELL_SIZE + TOPLEFT, (7 - y) * CELL_SIZE + TOPLEFT)
+            moved = True
+            self.moved = True
+        elif self.can_move(x, y) == '0-0' and self.color == BLACK:
+            self.x = 6
+            for i in board.figures:
+                if i.__class__.__name__ == 'Rook' and i.get_coords() == (7, 7):
+                    i.x = 5
+                    i.rect = i.image.get_rect().move(i.x * CELL_SIZE + TOPLEFT, (7 - i.y) * CELL_SIZE + TOPLEFT)
+                    break
+            self.rect = self.image.get_rect().move(x * CELL_SIZE + TOPLEFT, (7 - y) * CELL_SIZE + TOPLEFT)
+            moved = True
+            self.moved = True
+        elif self.can_move(x, y):
             for i in board.figures:
                 if i.get_coords() == (x, y):
                     i.kill()
@@ -75,7 +119,19 @@ class Figure(pygame.sprite.Sprite):
             self.x = x
             self.y = y
             self.rect = self.image.get_rect().move(x * CELL_SIZE + TOPLEFT, (7 - y) * CELL_SIZE + TOPLEFT)
-
+            moved = True
+            if self.__class__.__name__ == "Pawn":
+                if self.color == BLACK and self.y == 0:
+                    board.figures.remove(self)
+                    board.figures.append(Queen(self.x, self.y, BLACK))
+                    self.kill()
+                elif self.color == WHITE and self.y == 7:
+                    board.figures.remove(self)
+                    board.figures.append(Queen(self.x, self.y, WHITE))
+                    self.kill()
+        if self.__class__.__name__ == "King":
+            self.moved = True
+        if moved:
             screen.fill((0, 0, 0))
             board.render()
             all_sprites.draw(screen)
@@ -84,8 +140,7 @@ class Figure(pygame.sprite.Sprite):
                 ai_moved = False
             if not ai_moved:
                 ai_moved = True
-                ai.find_and_make_move(3, False)
-
+                ai.find_and_make_move(3, False)  # при низкой производмтельности уменьшить 1 аргумент
 
     def can_move(self, x, y):
         return True
@@ -110,6 +165,7 @@ class King(Figure):
         self.rect = self.image.get_rect().move(x * CELL_SIZE + TOPLEFT, (7 - y) * CELL_SIZE + TOPLEFT)
         self.color = color
         self.clicked = False
+        self.moved = False
         self.n_cost = 90
         self.cost_modify = [
         [ -3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
@@ -125,8 +181,23 @@ class King(Figure):
         else:
             self.cost = self.n_cost + (self.cost_modify[::-1][abs(self.y - 7)][self.x]) / 10
 
-
     def can_move(self, x, y):
+        if not self.moved and self.color == WHITE and x == 6:
+            for i in board.figures:
+                if i.get_coords() == (7, 0) and i.__class__.__name__ == 'Rook' and i.color == WHITE:
+                    return '0-0'
+        if not self.moved and self.color == WHITE and x == 2:
+            for i in board.figures:
+                if i.get_coords() == (0, 0) and i.__class__.__name__ == 'Rook' and i.color == WHITE:
+                    return '0-0-0'
+        if not self.moved and self.color == BLACK and x == 6:
+            for i in board.figures:
+                if i.get_coords() == (7, 7) and i.__class__.__name__ == 'Rook' and i.color == BLACK:
+                    return '0-0'
+        if not self.moved and self.color == BLACK and x == 2:
+            for i in board.figures:
+                if i.get_coords() == (0, 7) and i.__class__.__name__ == 'Rook' and i.color == BLACK:
+                    return '0-0-0'
         can = True
         if (abs(x - self.x) == 1 and abs(y - self.y) == 0) or (abs(x - self.x) == 0 and abs(y - self.y) == 1) or (abs(x - self.x) == 1 and abs(y - self.y) == 1):
             for i in board.figures:
@@ -135,15 +206,14 @@ class King(Figure):
                     break
         else:
             can = False
-        # сделать рокировку
-
         for i in board.figures:
             if i.__class__.__name__ != "King" and i.color != self.color and i.can_eat(x, y):
                 can = False
+        self.moved = True
         return can
 
     def can_eat(self, x, y):
-        return self.can_move(x, y) ### #
+        return self.can_move(x, y)
 
 
 class Knight(Figure):
@@ -207,7 +277,7 @@ class Pawn(Figure):
         self.color = color
         self.clicked = False
         self.n_cost = 1
-        self.cost_modify = [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        self.cost_modify = [[90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0],
         [5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0],
         [1.0, 1.0, 2.0, 3.0, 3.0, 2.0, 1.0, 1.0],
         [0.5, 0.5, 1.0, 2.5, 2.5, 1.0, 0.5, 0.5],
@@ -607,13 +677,14 @@ class ArtificialIntelligence:
 
     def ai_move(self, depth, alpha, beta, ismaxplayer):
         if depth == 0:
-            return round(evaluate_board(), 5)  # проблемы со временем изза перестановки фигур
-        if ismaxplayer:               # фиксится фозвращением фигуры в то же место, а не в конец
+            return round(evaluate_board(), 5)
+        if ismaxplayer:
             bestmove = -9999
             for i in board.figures:
                 if i.color == player_color:
                     for x in range(7, -1, -1):
                         for y in range(7, -1, -1):
+
                             if i.can_move(x, y):
                                 n, m = (i.x, i.y)
                                 fig = ind = None
