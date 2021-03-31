@@ -3,7 +3,7 @@ import os
 import sys
 import time
 
-
+# объявление глобальных переменных
 CELL_SIZE = 100
 TOPLEFT = 100
 WHITE = 0
@@ -16,6 +16,7 @@ moved_positions = [(), ()]
 ai_moved = False
 
 
+# есть ли фигура в данном поле
 def is_figure(x, y):
     for j in board.figures:
         if j.get_coords()[0] == x and j.get_coords()[1] == y:
@@ -23,6 +24,7 @@ def is_figure(x, y):
     return False
 
 
+# оценка доски
 def evaluate_board():
     summ_cost1 = 0
     summ_cost2 = 0
@@ -34,6 +36,7 @@ def evaluate_board():
     return summ_cost1 - summ_cost2
 
 
+# загрузка изображения
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
     if not os.path.isfile(fullname):
@@ -43,6 +46,7 @@ def load_image(name, colorkey=None):
     return image
 
 
+# может ли кто-то съесть короля
 def smb_can_eat_king(color, fig):
     x_king = y_king = -1
     for i in board.figures:
@@ -57,6 +61,7 @@ def smb_can_eat_king(color, fig):
     return False
 
 
+# родительский класс фигуры
 class Figure(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__(all_sprites)
@@ -67,6 +72,7 @@ class Figure(pygame.sprite.Sprite):
         self.clicked = False
         self.color = WHITE
 
+    # подвинуть фигуру
     def move(self, x, y):
         global ai_moved
         global moved_positions
@@ -142,19 +148,28 @@ class Figure(pygame.sprite.Sprite):
                 ai_moved = True
                 ai.find_and_make_move(3, False)  # при низкой производмтельности уменьшить 1 аргумент
 
+    # может ли фигура подвинуться на эту клетку
     def can_move(self, x, y):
         return True
 
+    # может ли фигура съесть фигуру по этим координатам
+    def can_eat(self, x, y):
+        return True
+
+    # нажать на фигуру
     def click(self):
         self.clicked = True
 
+    # перестать нажимать на фигуру
     def unclick(self):
         self.clicked = False
 
+    # координаты фигуры
     def get_coords(self):
         return (self.x, self.y)
 
 
+# дочерний класс короля
 class King(Figure):
     def __init__(self, x, y, color):
         super().__init__(x, y)
@@ -216,6 +231,7 @@ class King(Figure):
         return self.can_move(x, y)
 
 
+# дочерний класс коня
 class Knight(Figure):
     def __init__(self, x, y, color):
         super().__init__(x, y)
@@ -266,6 +282,7 @@ class Knight(Figure):
         return self.can_move(x, y)
 
 
+# дочерний класс пешки
 class Pawn(Figure):
     def __init__(self, x, y, color):
         super().__init__(x, y)
@@ -289,7 +306,6 @@ class Pawn(Figure):
             self.cost = self.n_cost + (self.cost_modify[abs(self.y - 7)][self.x]) / 10
         else:
             self.cost = self.n_cost + (self.cost_modify[::-1][abs(self.y - 7)][self.x]) / 10
-
 
     def can_move(self, x, y):
         can = True
@@ -332,6 +348,7 @@ class Pawn(Figure):
         return abs(x - self.x) == 1 and ((y == self.y + 1 and self.color == WHITE) or (y == self.y - 1 and self.color == BLACK))
 
 
+# дочерний класс ладьи
 class Rook(Figure):
     def __init__(self, x, y, color):
         super().__init__(x, y)
@@ -407,6 +424,7 @@ class Rook(Figure):
         return self.can_move(x, y)
 
 
+# дочерний класс слона
 class Bishop(Figure):
     def __init__(self, x, y, color):
         super().__init__(x, y)
@@ -480,6 +498,7 @@ class Bishop(Figure):
         return self.can_move(x, y)
 
 
+# дочерний класс ферзя
 class Queen(Figure):
     def __init__(self, x, y, color):
         super().__init__(x, y)
@@ -501,7 +520,6 @@ class Queen(Figure):
         [ -1.0,  0.0,  0.5,  0.0,  0.0,  0.0,  0.0, -1.0],
         [ -2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0]]
         self.cost = self.n_cost + (self.cost_modify[abs(self.y - 7)][self.x]) / 10
-
 
     def can_move(self, x, y):
         can = True
@@ -575,6 +593,7 @@ class Queen(Figure):
         return self.can_move(x, y)
 
 
+# класс доски
 class Board:
     def __init__(self):
         self.width = 8
@@ -583,7 +602,7 @@ class Board:
         self.left = self.top = TOPLEFT
         self.cell_size = CELL_SIZE
         self.figures = []
-
+        # инициализация фигур
         self.figures.append(Knight(1, 7, BLACK))
         self.figures.append(Knight(6, 7, BLACK))
         self.figures.append(Pawn(0, 6, BLACK))
@@ -617,19 +636,13 @@ class Board:
         self.figures.append(Queen(3, 0, WHITE))
         self.figures.append(King(4, 0, WHITE))
 
-        '''self.figures.append(King(7, 7, BLACK))
-        self.figures.append(Pawn(0, 6, BLACK))
-        self.figures.append(Pawn(3, 6, BLACK))
-        self.figures.append(Pawn(0, 1, WHITE))
-        self.figures.append(Pawn(3, 1, WHITE))
-        self.figures.append(King(0, 0, WHITE))'''
-
-
+    # установить правую верхнюю точку
     def set_view(self, left, top, cell_size):
         self.left = left
         self.top = top
         self.cell_size = cell_size
 
+    # получить координату доски по координатам пикселя
     def get_cell(self, mouse_pos):
         for i in range(self.height):
             for j in range(self.width):
@@ -638,6 +651,7 @@ class Board:
                     mouse_pos[1] < self.cell_size + self.top + i * self.cell_size:
                     return (j, abs(i - 7))
 
+    # обработчик нажатий
     def on_click(self, cell_coords):
         for i in self.figures:
             if i.get_coords() == cell_coords and not i.clicked:
@@ -648,12 +662,12 @@ class Board:
                 i.move(cell_coords[0], cell_coords[1])
                 i.unclick()
 
-
-
+    # метод связующий get_cell и on_click
     def get_click(self, mouse_pos):
         cell = self.get_cell(mouse_pos)
         self.on_click(cell)
 
+    # нарисовать доску
     def render(self):
         k = 0
         for i in range(self.height):
@@ -671,10 +685,12 @@ class Board:
         pygame.draw.line(screen, (255, 0, 0), (self.top + 800, self.left + 800), (self.top + 800, self.left))
 
 
+# класс Искуственного Интеллекта
 class ArtificialIntelligence:
     def __init__(self, color):
         self.color = color
 
+    # рекурсивная функция нахождения лучшей позиции
     def ai_move(self, depth, alpha, beta, ismaxplayer):
         if depth == 0:
             return round(evaluate_board(), 5)
@@ -684,7 +700,6 @@ class ArtificialIntelligence:
                 if i.color == player_color:
                     for x in range(7, -1, -1):
                         for y in range(7, -1, -1):
-
                             if i.can_move(x, y):
                                 n, m = (i.x, i.y)
                                 fig = ind = None
@@ -736,6 +751,7 @@ class ArtificialIntelligence:
                                     return bestmove
             return bestmove
 
+    # нахождение лучшего хода
     def find_and_make_move(self, depth, ismaxplayer):
         a = time.time()
         bestmove = 9999
@@ -766,12 +782,12 @@ class ArtificialIntelligence:
                                 bestmove = value
                                 bestmovefound = (n, m, x, y)
                             print(i, value, time.time() - a, x, y)
-        print(bestmove)
         for i in board.figures:
             if i.get_coords() == (bestmovefound[0], bestmovefound[1]):
                 i.move(bestmovefound[2], bestmovefound[3])
 
 
+# инициализация переменных и объектов
 size = width, height = 1000, 1000
 screen = pygame.display.set_mode(size)
 board = Board()
@@ -779,8 +795,8 @@ player_color = WHITE
 ai = ArtificialIntelligence(BLACK)
 fps = 100
 clock = pygame.time.Clock()
-
 running = True
+# основной цикл
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
