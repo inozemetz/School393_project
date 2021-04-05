@@ -2,6 +2,8 @@ import pygame
 import os
 import sys
 import time
+from PyQt5 import uic  # Импортируем uic
+from PyQt5.QtWidgets import QApplication, QMainWindow
 
 # объявление глобальных переменных
 CELL_SIZE = 100
@@ -22,6 +24,26 @@ def is_figure(x, y):
         if j.get_coords()[0] == x and j.get_coords()[1] == y:
             return True
     return False
+
+
+def terminate():
+    pygame.quit()
+    sys.exit()
+
+
+def start_screen():
+    pygame.init()
+    clock = pygame.time.Clock()
+    app = QApplication(sys.argv)
+    ex = MyWidget()
+    ex.show()
+    while True:
+        if ex.is_pushed:
+            return ex.player_color, ex.ai_color
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+        clock.tick(60)
 
 
 # оценка доски
@@ -653,14 +675,17 @@ class Board:
 
     # обработчик нажатий
     def on_click(self, cell_coords):
-        for i in self.figures:
-            if i.get_coords() == cell_coords and not i.clicked:
-                i.click()
-            elif i.get_coords() == cell_coords and i.clicked:
-                i.unclick()
-            elif i.get_coords() != cell_coords and i.clicked:
-                i.move(cell_coords[0], cell_coords[1])
-                i.unclick()
+        try:
+            for i in self.figures:
+                if i.get_coords() == cell_coords and not i.clicked:
+                    i.click()
+                elif i.get_coords() == cell_coords and i.clicked:
+                    i.unclick()
+                elif i.get_coords() != cell_coords and i.clicked and i.color == player_color:
+                    i.move(cell_coords[0], cell_coords[1])
+                    i.unclick()
+        except Exception:
+            print('что-то пошло не так')
 
     # метод связующий get_cell и on_click
     def get_click(self, mouse_pos):
@@ -687,9 +712,6 @@ class Board:
 
 # класс Искуственного Интеллекта
 class ArtificialIntelligence:
-    def __init__(self, color):
-        self.color = color
-
     # рекурсивная функция нахождения лучшей позиции
     def ai_move(self, depth, alpha, beta, ismaxplayer):
         if depth == 0:
@@ -787,12 +809,31 @@ class ArtificialIntelligence:
                 i.move(bestmovefound[2], bestmovefound[3])
 
 
+class MyWidget(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        uic.loadUi('start_screen.ui', self)  # Загружаем дизайн
+        self.pushButton.clicked.connect(self.white_button)
+        self.pushButton_2.clicked.connect(self.black_button)
+        self.is_pushed = False
+
+    def white_button(self):
+        self.player_color = WHITE
+        self.ai_color = BLACK
+        self.is_pushed = True
+
+    def black_button(self):
+        self.player_color = BLACK
+        self.ai_color = WHITE
+        self.is_pushed = True
+
+
 # инициализация переменных и объектов
+player_color, ai_color = start_screen()
 size = width, height = 1000, 1000
 screen = pygame.display.set_mode(size)
 board = Board()
-player_color = WHITE
-ai = ArtificialIntelligence(BLACK)
+ai = ArtificialIntelligence()
 fps = 100
 clock = pygame.time.Clock()
 running = True
