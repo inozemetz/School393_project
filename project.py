@@ -14,8 +14,10 @@ all_sprites = pygame.sprite.Group()
 global ai_moved
 global all_positions
 global moved_positions
-moved_positions = [(), ()]
-ai_moved = False
+global running
+white_won = None
+global moved_positions
+moved_positions = [(-5, -5), (-5, -5)]
 
 
 # есть ли фигура в данном поле
@@ -89,7 +91,7 @@ class Figure(pygame.sprite.Sprite):
         super().__init__(all_sprites)
         self.x = x
         self.y = y
-        self.image = pygame.transform.scale(load_image('white_pawn.jpg'), (CELL_SIZE, CELL_SIZE))
+        self.image = pygame.transform.scale(load_image('white_pawn.png'), (CELL_SIZE, CELL_SIZE))
         self.rect = self.image.get_rect().move(y * CELL_SIZE + TOPLEFT, x * CELL_SIZE + TOPLEFT)
         self.clicked = False
         self.color = WHITE
@@ -98,6 +100,8 @@ class Figure(pygame.sprite.Sprite):
     def move(self, x, y):
         global ai_moved
         global moved_positions
+        global white_won
+        global running
         moved = False
         if self.can_move(x, y) == '0-0-0' and self.color == WHITE:
             self.x = 2
@@ -144,8 +148,10 @@ class Figure(pygame.sprite.Sprite):
                 if i.get_coords() == (x, y):
                     i.kill()
                     board.figures.remove(i)
+            moved_positions[0] = (self.x, self.y)
             self.x = x
             self.y = y
+            moved_positions[1] = (x, y)
             self.rect = self.image.get_rect().move(x * CELL_SIZE + TOPLEFT, (7 - y) * CELL_SIZE + TOPLEFT)
             moved = True
             if self.__class__.__name__ == "Pawn":
@@ -160,6 +166,36 @@ class Figure(pygame.sprite.Sprite):
         if self.__class__.__name__ == "King":
             self.moved = True
         if moved:
+            if self.color == BLACK and smb_can_eat_king(WHITE, 0):
+                n = False
+                for i in board.figures:
+                    if i.__class__.__name__ == 'King' and i.color == WHITE:
+                        for x in range(8):
+                            for y in range(8):
+                                if i.can_move(x, y):
+                                    n = True
+                if n is False:
+                    white_won = False
+                    screen.fill((0, 0, 0))
+                    board.render()
+                    all_sprites.draw(screen)
+                    pygame.display.flip()
+                    return None
+            if self.color == WHITE and smb_can_eat_king(BLACK, 0):
+                n = False
+                for i in board.figures:
+                    if i.__class__.__name__ == 'King' and i.color == BLACK:
+                        for x in range(8):
+                            for y in range(8):
+                                if i.can_move(x, y):
+                                    n = True
+                if n is False:
+                    white_won = True
+                    screen.fill((0, 0, 0))
+                    board.render()
+                    all_sprites.draw(screen)
+                    pygame.display.flip()
+                    return None
             screen.fill((0, 0, 0))
             board.render()
             all_sprites.draw(screen)
@@ -196,9 +232,9 @@ class King(Figure):
     def __init__(self, x, y, color):
         super().__init__(x, y)
         if color == WHITE:
-            self.image = pygame.transform.scale(load_image('white_king.jpg'), (CELL_SIZE, CELL_SIZE))
+            self.image = pygame.transform.scale(load_image('white_king.png'), (CELL_SIZE, CELL_SIZE))
         else:
-            self.image = pygame.transform.scale(load_image('black_king.jpg'), (CELL_SIZE, CELL_SIZE))
+            self.image = pygame.transform.scale(load_image('black_king.png'), (CELL_SIZE, CELL_SIZE))
         self.rect = self.image.get_rect().move(x * CELL_SIZE + TOPLEFT, (7 - y) * CELL_SIZE + TOPLEFT)
         self.color = color
         self.clicked = False
@@ -244,13 +280,14 @@ class King(Figure):
         else:
             can = False
         for i in board.figures:
-            if i.__class__.__name__ != "King" and i.color != self.color and i.can_eat(x, y):
+            if i.color != self.color and i.can_eat(x, y):
                 can = False
         self.moved = True
         return can
 
     def can_eat(self, x, y):
-        return self.can_move(x, y)
+        if abs(x - self.x) <= 1 and abs(y - self.y) <= 1:
+            return True
 
 
 # дочерний класс коня
@@ -258,9 +295,9 @@ class Knight(Figure):
     def __init__(self, x, y, color):
         super().__init__(x, y)
         if color == WHITE:
-            self.image = pygame.transform.scale(load_image('white_knight.jpg'), (CELL_SIZE, CELL_SIZE))
+            self.image = pygame.transform.scale(load_image('white_knight.png'), (CELL_SIZE, CELL_SIZE))
         else:
-            self.image = pygame.transform.scale(load_image('black_knight.jpg'), (CELL_SIZE, CELL_SIZE))
+            self.image = pygame.transform.scale(load_image('black_knight.png'), (CELL_SIZE, CELL_SIZE))
         self.rect = self.image.get_rect().move(x * CELL_SIZE + TOPLEFT, (7 - y) * CELL_SIZE + TOPLEFT)
         self.color = color
         self.clicked = False
@@ -309,9 +346,9 @@ class Pawn(Figure):
     def __init__(self, x, y, color):
         super().__init__(x, y)
         if color == WHITE:
-            self.image = pygame.transform.scale(load_image('white_pawn.jpg'), (CELL_SIZE, CELL_SIZE))
+            self.image = pygame.transform.scale(load_image('white_pawn.png'), (CELL_SIZE, CELL_SIZE))
         else:
-            self.image = pygame.transform.scale(load_image('black_pawn.jpg'), (CELL_SIZE, CELL_SIZE))
+            self.image = pygame.transform.scale(load_image('black_pawn.png'), (CELL_SIZE, CELL_SIZE))
         self.rect = self.image.get_rect().move(x * CELL_SIZE + TOPLEFT, (7 - y) * CELL_SIZE + TOPLEFT)
         self.color = color
         self.clicked = False
@@ -375,9 +412,9 @@ class Rook(Figure):
     def __init__(self, x, y, color):
         super().__init__(x, y)
         if color == WHITE:
-            self.image = pygame.transform.scale(load_image('white_rook.jpg'), (CELL_SIZE, CELL_SIZE))
+            self.image = pygame.transform.scale(load_image('white_rook.png'), (CELL_SIZE, CELL_SIZE))
         else:
-            self.image = pygame.transform.scale(load_image('black_rook.jpg'), (CELL_SIZE, CELL_SIZE))
+            self.image = pygame.transform.scale(load_image('black_rook.png'), (CELL_SIZE, CELL_SIZE))
         self.rect = self.image.get_rect().move(x * CELL_SIZE + TOPLEFT, (7 - y) * CELL_SIZE + TOPLEFT)
         self.color = color
         self.clicked = False
@@ -451,9 +488,9 @@ class Bishop(Figure):
     def __init__(self, x, y, color):
         super().__init__(x, y)
         if color == WHITE:
-            self.image = pygame.transform.scale(load_image('white_bishop.jpg'), (CELL_SIZE, CELL_SIZE))
+            self.image = pygame.transform.scale(load_image('white_bishop.png'), (CELL_SIZE, CELL_SIZE))
         else:
-            self.image = pygame.transform.scale(load_image('black_bishop.jpg'), (CELL_SIZE, CELL_SIZE))
+            self.image = pygame.transform.scale(load_image('black_bishop.png'), (CELL_SIZE, CELL_SIZE))
         self.rect = self.image.get_rect().move(x * CELL_SIZE + TOPLEFT, (7 - y) * CELL_SIZE + TOPLEFT)
         self.color = color
         self.clicked = False
@@ -525,9 +562,9 @@ class Queen(Figure):
     def __init__(self, x, y, color):
         super().__init__(x, y)
         if color == WHITE:
-            self.image = pygame.transform.scale(load_image('white_queen.jpg'), (CELL_SIZE, CELL_SIZE))
+            self.image = pygame.transform.scale(load_image('white_queen.png'), (CELL_SIZE, CELL_SIZE))
         else:
-            self.image = pygame.transform.scale(load_image('black_queen.jpg'), (CELL_SIZE, CELL_SIZE))
+            self.image = pygame.transform.scale(load_image('black_queen.png'), (CELL_SIZE, CELL_SIZE))
         self.rect = self.image.get_rect().move(x * CELL_SIZE + TOPLEFT, (7 - y) * CELL_SIZE + TOPLEFT)
         self.color = color
         self.clicked = False
@@ -658,6 +695,7 @@ class Board:
         self.figures.append(Queen(3, 0, WHITE))
         self.figures.append(King(4, 0, WHITE))
 
+
     # установить правую верхнюю точку
     def set_view(self, left, top, cell_size):
         self.left = left
@@ -685,7 +723,7 @@ class Board:
                     i.move(cell_coords[0], cell_coords[1])
                     i.unclick()
         except Exception:
-            print('что-то пошло не так')
+            pass
 
     # метод связующий get_cell и on_click
     def get_click(self, mouse_pos):
@@ -694,20 +732,44 @@ class Board:
 
     # нарисовать доску
     def render(self):
+        global moved_positions
         k = 0
         for i in range(self.height):
             for j in range(self.width):
                 if (j + k) % 2 != 0:
-                    pygame.draw.rect(screen, (0, 0, 0), (self.top + j * self.cell_size, self.top + i * self.cell_size,
+                    pygame.draw.rect(screen, (100, 100, 100), (self.top + j * self.cell_size, self.top + i * self.cell_size,
                                                          self.cell_size, self.cell_size))
                 else:
                     pygame.draw.rect(screen, (255, 255, 255), (self.top + j * self.cell_size, self.top + i * self.cell_size,
                                                          self.cell_size, self.cell_size))
             k += 1
-        pygame.draw.line(screen, (255, 0, 0), (self.top, self.left), (self.top + 800, self.left))
-        pygame.draw.line(screen, (255, 0, 0), (self.top, self.left + 800), (self.top, self.left))
-        pygame.draw.line(screen, (255, 0, 0), (self.top + 800, self.left + 800), (self.top, self.left + 800))
-        pygame.draw.line(screen, (255, 0, 0), (self.top + 800, self.left + 800), (self.top + 800, self.left))
+        pygame.draw.line(screen, (100, 0, 0), (self.top, self.left), (self.top + 800, self.left))
+        pygame.draw.line(screen, (100, 0, 0), (self.top, self.left + 800), (self.top, self.left))
+        pygame.draw.line(screen, (100, 0, 0), (self.top + 800, self.left + 800), (self.top, self.left + 800))
+        pygame.draw.line(screen, (100, 0, 0), (self.top + 800, self.left + 800), (self.top + 800, self.left))
+        if (abs(7 - moved_positions[0][1]) * 7 + abs(7 - moved_positions[0][0])) % 2 == 1:
+            pygame.draw.rect(screen, (170, 255, 170), (self.top + moved_positions[0][0] * self.cell_size, self.top + abs(7 - moved_positions[0][1]) * self.cell_size,
+                                                       self.cell_size, self.cell_size))
+        else:
+            pygame.draw.rect(screen, (70, 100, 70), (self.top + moved_positions[0][0] * self.cell_size,
+                                                   self.top + abs(7 - moved_positions[0][1]) * self.cell_size,
+                                                   self.cell_size, self.cell_size))
+        if (abs(7 - moved_positions[1][1]) * 7 + abs(7 - moved_positions[1][0])) % 2 == 1:
+            pygame.draw.rect(screen, (170, 255, 170), (self.top + moved_positions[1][0] * self.cell_size,
+                                                       self.top + abs(7 - moved_positions[1][1]) * self.cell_size,
+                                                       self.cell_size, self.cell_size))
+        else:
+            pygame.draw.rect(screen, (70, 100, 70), (self.top + moved_positions[1][0] * self.cell_size,
+                                                   self.top + abs(7 - moved_positions[1][1]) * self.cell_size,
+                                                   self.cell_size, self.cell_size))
+        for i in range(8):
+            f1 = pygame.font.Font(None, 35)
+            text1 = f1.render(chr(ord('a') + i), True, (200, 200, 200))
+            screen.blit(text1, (TOPLEFT + CELL_SIZE // 2 + i * CELL_SIZE - 5, 920))
+        for i in range(8, 0, -1):
+            f1 = pygame.font.Font(None, 35)
+            text1 = f1.render(str(abs(9 - i)), True, (200, 200, 200))
+            screen.blit(text1, (60, TOPLEFT + CELL_SIZE // 2 + (i - 1) * CELL_SIZE - 5))
 
 
 # класс Искуственного Интеллекта
@@ -803,7 +865,7 @@ class ArtificialIntelligence:
                             if value <= bestmove:
                                 bestmove = value
                                 bestmovefound = (n, m, x, y)
-                            print(i, value, time.time() - a, x, y)
+                            print(i.__class__.__name__, value, time.time() - a, x, y)
         for i in board.figures:
             if i.get_coords() == (bestmovefound[0], bestmovefound[1]):
                 i.move(bestmovefound[2], bestmovefound[3])
@@ -828,8 +890,27 @@ class MyWidget(QMainWindow):
         self.is_pushed = True
 
 
+class EndWidget(QMainWindow):
+    def __init__(self, white_won):
+        super().__init__()
+        uic.loadUi('end_screen.ui', self)  # Загружаем дизайн
+        if white_won is True:
+            self.label.setText('победили белые')
+            self.label.adjustSize()
+        elif white_won is False:
+            self.label.setText('победили черные')
+            self.label.adjustSize()
+        else:
+            self.label.setText('ничья')
+            self.label.adjustSize()
+
+
 # инициализация переменных и объектов
 player_color, ai_color = start_screen()
+if player_color == BLACK:
+    ai_moved = False
+else:
+    ai_moved = True
 size = width, height = 1000, 1000
 screen = pygame.display.set_mode(size)
 board = Board()
@@ -837,15 +918,30 @@ ai = ArtificialIntelligence()
 fps = 100
 clock = pygame.time.Clock()
 running = True
+first_move = False
 # основной цикл
 while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+    try:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                board.get_click(event.pos)
+        screen.fill((0, 0, 0))
+        board.render()
+        all_sprites.draw(screen)
+        clock.tick(fps)
+        pygame.display.flip()
+        if not (white_won is None):
             running = False
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            board.get_click(event.pos)
-    screen.fill((0, 0, 0))
-    board.render()
-    all_sprites.draw(screen)
-    clock.tick(fps)
-    pygame.display.flip()
+        if player_color == BLACK and not first_move:
+            first_move = True
+            ai_moved = True
+            ai.find_and_make_move(3, False)
+    except Exception:
+        print('что-то пошло не так')
+pygame.quit()
+app = QApplication(sys.argv)
+ex = EndWidget(white_won)
+ex.show()
+sys.exit(app.exec_())
